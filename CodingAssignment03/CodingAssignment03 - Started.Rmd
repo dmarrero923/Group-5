@@ -11,6 +11,8 @@ output:
 ```{r setup, include=FALSE}
 #Put any packages you need here
 library(corrplot)
+library(plotly)
+library(gt)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -38,20 +40,21 @@ insurance <- read.csv("../Data/insurance_0026_Group5.csv")
 Randomly select three observations from the sample and exclude from all modeling (i.e. n=47). Provide the summary statistics (min, max, std, mean, median) of the quantitative variables for the 47 observations.
 
 ```{r q1}
-remove3 <- insurance[-c(13,22,47),]
-removequalitative <- remove3[,c('Charges','Age','BMI','Children')]
-summary(removequalitative)
+insuranceremove3 <- insurance[-sample(1:nrow(insurance), 3), ]
+removequalitative1 <- insuranceremove3[,c('Charges','Age','BMI','Children')]
+summary(removequalitative1)
+
 
 ```
-
+Three random observations were removed from the sample. The summary statistics for the quantitative variables are shown above. 
 
 ## Question 2
 
 Provide the correlation between all quantitative variables
 
 ```{r}
-cor(removequalitative)
-corrplot(cor(removequalitative),
+cor(removequalitative1)
+corrplot(cor(removequalitative1),
 type = "lower",
 order = "hclust",
 tl.col = "black",
@@ -71,11 +74,35 @@ Run a regression that includes all independent variables in the data table. Does
 Implement the solutions from question 3, such as data transformation, along with any other changes you wish. Use the sample data and run a new regression. How have the fit measures changed? How have the signs and significance of the coefficients changed?
 
 ```{r q3}
-model <- lm(Charges~ Age + BMI + Female + Children + Smoker +WinterSprings + WinterPark + Oviedo, data = remove3)
+model <- lm(Charges~ Age + BMI + Female + Children + Smoker +WinterSprings + WinterPark + Oviedo, data = insuranceremove3)
 summary(model)
 
+par(mfrow=c(2,2))
+plot(model)
+
+set.seed(123457)
+index <- sample(seq_len(nrow(insuranceremove3)), size = 10)
+
+train <- insuranceremove3[-index,]
+test <- insuranceremove3[index,]
+
+scatterplotMatrix(train[,1:4])
+
+par(mfrow=c(1,2))
+hist(train$Charges) #before
+
+train$lnCharges <- log(train$Charges)
+
+hist(train$lnCharges) #after
+model2 <- lm(train$lnCharges~ Age + BMI + Female + Children + Smoker +WinterSprings + WinterPark + Oviedo, data = train)
+summary(model2)
 
 ```
+The first plot above titled "Residuals vs. Fitted," there is a non-linear relationship. This violates Gauss Markov assumption number. It is fixed by blah blah blah.
+
+The second plot above titled "Normal Q-Q," shows the assumption of a normally distributed dependent variable for a fixed set of predictors. If this were a 45-degree line upwards, we could verify this. Unfortunately we do not have it in this case.
+
+The third plot titled "Scale-Location" checks for homoskedasticity. If this assumption were not violated, you'd see random points around a horizontal line. In this case, it is upwards sloping, so you can see there is a "fanning out" effect.
 
 ## Question 5
 
@@ -109,7 +136,55 @@ An eager insurance representative comes back with five potential clients. Using 
 
 ```{r}
 
+potential1 <- data.frame(Age = 60,
+                            BMI = 22,
+                            Children = 0,
+                            Female = 1,
+                            Smoker = 0,
+                            WinterSprings = 0,
+                            WinterPark = 0,
+                            Oviedo = 1)
+potential2 <- data.frame(Age = 40,
+                            BMI = 30,
+                            Children = 1,
+                            Female = 0,
+                            Smoker = 0,
+                            WinterSprings = 0,
+                            WinterPark = 0,
+                            Oviedo = 1)
+potential3 <- data.frame(Age = 25,
+                            BMI = 25,
+                            Children = 0,
+                            Female = 0,
+                            Smoker = 1,
+                            WinterSprings = 0,
+                            WinterPark = 1,
+                            Oviedo = 0)
+potential4 <- data.frame(Age = 33,
+                            BMI = 35,
+                            Children = 2,
+                            Female = 1,
+                            Smoker = 0,
+                            WinterSprings = 1,
+                            WinterPark = 0,
+                            Oviedo = 0)
+potential5 <- data.frame(Age = 45,
+                            BMI = 27,
+                            Children = 3,
+                            Female = 1,
+                            Smoker = 0,
+                            WinterSprings = 0,
+                            WinterPark = 0,
+                            Oviedo = 1)
+
+predict(model, newdata = potential1, interval = 'confidence')
+predict(model, newdata = potential2, interval = 'confidence')
+predict(model, newdata = potential3, interval = 'confidence')
+predict(model, newdata = potential4, interval = 'confidence')
+predict(model, newdata = potential5, interval = 'confidence')
+
 ```
+Need to define the correct model above
 
 ## Question 8
 
