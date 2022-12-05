@@ -86,7 +86,7 @@ index <- sample(seq_len(nrow(insuranceremove3)), size = 10)
 train <- insuranceremove3[-index,]
 test <- insuranceremove3[index,]
 
-scatterplotMatrix(train[,1:4])
+#scatterplotMatrix(train[,1:4])
 
 par(mfrow=c(1,2))
 hist(train$Charges) #before
@@ -96,6 +96,12 @@ train$lnCharges <- log(train$Charges)
 hist(train$lnCharges) #after
 model2 <- lm(train$lnCharges~ Age + BMI + Female + Children + Smoker +WinterSprings + WinterPark + Oviedo, data = train)
 summary(model2)
+
+hist(test$Charges)
+test$lnCharges <- log(test$Charges)
+model3 <-  lm(test$lnCharges~ Age + BMI + Female + Children + Smoker +WinterSprings + WinterPark + Oviedo, data = test)
+hist(test$lnCharges)
+summary(model3)
 
 ```
 The first plot above titled "Residuals vs. Fitted," there is a non-linear relationship. This violates Gauss Markov assumption number. It is fixed by blah blah blah.
