@@ -62,7 +62,7 @@ tl.srt = 45,
 addCoef.col = "black",
 diag = FALSE)
 ```
-
+The correlation between all of the the quantitative variables are displayed above. Age is shown to be the most positively correlated to the Charges, with Children and BMI being the most negatively correlated to each other. Age and BMI, Charges and BMI, as well as Age and Children, are all slightly correlated. 
 
 ## Question 3
 
@@ -102,13 +102,15 @@ The first plot above titled "Residuals vs. Fitted," there is a non-linear relati
 
 The second plot above titled "Normal Q-Q," shows the assumption of a normally distributed dependent variable for a fixed set of predictors. If this were a 45-degree line upwards, we could verify this. Unfortunately we do not have it in this case.
 
-The third plot titled "Scale-Location" checks for homoskedasticity. If this assumption were not violated, you'd see random points around a horizontal line. In this case, it is upwards sloping, so you can see there is a "fanning out" effect.
+The third plot titled "Scale-Location" is checking for homoskedasticity. This assumption has been violated, as can If this assumption were not violated, you'd see random points around a horizontal line. In this case, it is upwards sloping, so you can see there is a "fanning out" effect.
 
 ## Question 5
 
 Use the 3 withheld observations and calculate the performance measures for your best two models. Which is the better model? (remember that "better" depends on whether your outlook is short or long run)
 
 ```{r q4}
+model3 <- lm(Charges~ Age + BMI + Female + Children + Smoker +WinterSprings + WinterPark + Oviedo, data = insurance)
+summary(model3)
 
 ```
 
