@@ -12,7 +12,7 @@ output:
 #Put any packages you need here
 library(corrplot)
 library(plotly)
-library(gt)
+
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -40,19 +40,28 @@ insurance <- read.csv("../Data/insurance_0026_Group5.csv")
 Randomly select three observations from the sample and exclude from all modeling (i.e. n=47). Provide the summary statistics (min, max, std, mean, median) of the quantitative variables for the 47 observations.
 
 ```{r q1}
+set.seed(123457)
 insuranceremove3 <- insurance[-sample(1:nrow(insurance), 3), ]
 removequalitative1 <- insuranceremove3[,c('Charges','Age','BMI','Children')]
 summary(removequalitative1)
+sd(removequalitative1$Charges, na.rm = TRUE)
+sd(removequalitative1$Age, na.rm = TRUE)
+sd(removequalitative1$BMI, na.rm = TRUE)
+sd(removequalitative1$Children, na.rm = TRUE)
+index <- sample(seq_len(nrow(train)), size = 10)
+train <- insuranceremove3[-index,]
+test <- insuranceremove3[index,]
+
 
 
 ```
-Three random observations were removed from the sample. The summary statistics for the quantitative variables are shown above. 
+Three random observations were removed from the sample. The summary statistics for the quantitative variables are shown above. The standard deviations for Charges, Age, BMI, and Children are $13,615.61, 14.49329 years, 6.498423, and 1.176394 respectively. 
 
 ## Question 2
 
 Provide the correlation between all quantitative variables
 
-```{r}
+```{r q2}
 cor(removequalitative1)
 corrplot(cor(removequalitative1),
 type = "lower",
@@ -62,68 +71,136 @@ tl.srt = 45,
 addCoef.col = "black",
 diag = FALSE)
 ```
-
+The correlation between all of the the quantitative variables are displayed above. Age is shown to be the most positively correlated to Charges, with Children and BMI being the most negatively correlated to each other. Age and BMI, Charges and BMI, as well as Age and Children, are all slightly correlated. Charges and children have basically  no correlation.
 
 ## Question 3
 
 Run a regression that includes all independent variables in the data table. Does the model above violate any of the Gauss-Markov assumptions? If so, what are they and what is the solution for correcting?
+```{r q3}
+model <- lm(Charges~ Age + BMI + Female + Children + Smoker +WinterSprings + WinterPark + Oviedo, data = train)
+summary(model)
 
+par(mfrow=c(2,2))
+plot(model)
+```
+The first plot above titled "Residuals vs. Fitted," there is a non-linear relationship. This violates Gauss Markov assumption number 3. It is fixed by transforming the data. 
+
+The second plot above titled "Normal Q-Q," shows the assumption of a normally distributed dependent variable for a fixed set of predictors. If this were a 45-degree line upwards, we could verify this. Unfortunately we do not have it in this case. This violates Gauss Markov assumption number 6. This is fixed by transforming the data.
+
+The third plot "Scale-Location" is checking for homoskedasticity. This violates Gauss Markov assumption number 4. If this assumption were not violated, you'd see random points around a horizontal line. In this case, it is upward sloping, so you can see there is a "fanning out" effect. This is fixed by transforming the data. 
 
 ## Question 4
 
 Implement the solutions from question 3, such as data transformation, along with any other changes you wish. Use the sample data and run a new regression. How have the fit measures changed? How have the signs and significance of the coefficients changed?
 
-```{r q3}
-model <- lm(Charges~ Age + BMI + Female + Children + Smoker +WinterSprings + WinterPark + Oviedo, data = insuranceremove3)
-summary(model)
-
-par(mfrow=c(2,2))
-plot(model)
-
-set.seed(123457)
-index <- sample(seq_len(nrow(insuranceremove3)), size = 10)
-
-train <- insuranceremove3[-index,]
-test <- insuranceremove3[index,]
-
-#scatterplotMatrix(train[,1:4])
+```{r q4}
+scatterplotMatrix(train[,1:3])
 
 par(mfrow=c(1,2))
 hist(train$Charges) #before
+summary(model)
 
 train$lnCharges <- log(train$Charges)
 
 hist(train$lnCharges) #after
-model2 <- lm(train$lnCharges~ Age + BMI + Female + Children + Smoker +WinterSprings + WinterPark + Oviedo, data = train)
+model2 <- lm(lnCharges~ Age + BMI + Female + Children + Smoker +WinterSprings + WinterPark + Oviedo, data = train)
 summary(model2)
 
-hist(test$Charges)
-test$lnCharges <- log(test$Charges)
-model3 <-  lm(test$lnCharges~ Age + BMI + Female + Children + Smoker +WinterSprings + WinterPark + Oviedo, data = test)
-hist(test$lnCharges)
-summary(model3)
 
 ```
-The first plot above titled "Residuals vs. Fitted," there is a non-linear relationship. This violates Gauss Markov assumption number. It is fixed by blah blah blah.
-
-The second plot above titled "Normal Q-Q," shows the assumption of a normally distributed dependent variable for a fixed set of predictors. If this were a 45-degree line upwards, we could verify this. Unfortunately we do not have it in this case.
-
-The third plot titled "Scale-Location" checks for homoskedasticity. If this assumption were not violated, you'd see random points around a horizontal line. In this case, it is upwards sloping, so you can see there is a "fanning out" effect.
+After performing a data transformation, the fit measure for the model went slightly up, from 74.66% to 77.03%. The signs of the intercept as well as WinterSprings changed from negative to positive. The significance of all the variables stayed the same. Age became slightly more significant with the transformation. 
 
 ## Question 5
 
 Use the 3 withheld observations and calculate the performance measures for your best two models. Which is the better model? (remember that "better" depends on whether your outlook is short or long run)
 
-```{r q4}
+```{r q5}
+#hist(test$Charges)
+test$lnCharges <- log(test$Charges)
+model3 <-  lm(lnCharges~ Age + BMI + Female + Children + Smoker +WinterSprings + WinterPark + Oviedo, data = train)
+hist(test$lnCharges)
+summary(model3)
+
+test$model <- predict(model, newdata = test)
+
+test$model2 <- predict(model2,newdata = test) %>% exp()
+
+test$model3 <- predict(model3,newdata = test) %>% exp()
+
+# Finding the error
+
+test$error_bm <- test$model - test$Charges
+
+test$error_1 <- test$model2 - test$Charges
+
+test$error_2 <- test$model3 - test$Charges
+
+#Bias
+# Bad Model
+mean(test$error_bm)
+
+# Model 1
+mean(test$error_1)
+
+# Model 2
+mean(test$error_2)
+
+#MAE
+mae <- function(error_vector){
+  error_vector %>% 
+  abs() %>% 
+  mean()
+}
+
+# Bad Model
+mae(test$error_bm)
+
+# Model 1
+mae(test$error_1)
+
+# Model 2
+mae(test$error_2)
+
+#RMSE
+rmse <- function(error_vector){
+   error_vector^2 %>% 
+  mean() %>% 
+  sqrt()
+
+}
+
+# Bad Model
+rmse(test$error_bm)
+# Model 1
+rmse(test$error_1)
+
+# Model 2
+rmse(test$error_2)
+
+#MAPE
+mape <- function(error_vector, actual_vector){
+  (error_vector/actual_vector) %>% 
+    abs() %>% 
+    mean()
+}
+
+# Bad Model
+mape(test$error_bm, test$Charges)
+# Model 1
+mape(test$error_1, test$Charges)
+
+# Model 2
+mape(test$error_2, test$Charges)
 
 ```
 
+Comparing the three models, model 2 was the worst performing. Comparing the other two, the logarithmic relationship (Model 3) has lower bias, MAE, MAPE, and RMSE. Model 3 has a lower RMSE meaning that there were small prediction errors. If you are looking at the short-run, Model 3 would be preferred. Model 1 if you are looking at the long-run.
 
 ## Question 6
 
 Provide interpretations of the coefficients, do the signs make sense? Perform marginal change analysis (thing 2) on the independent variables.
 
-```{r}
+```{r q6}
 
 ```
 
@@ -140,7 +217,7 @@ An eager insurance representative comes back with five potential clients. Using 
 | 5        | 45  | 27  | 1      | 3        | 0      | Oviedo         |
 
 
-```{r}
+```{r q7}
 
 potential1 <- data.frame(Age = 60,
                             BMI = 22,
@@ -183,11 +260,11 @@ potential5 <- data.frame(Age = 45,
                             WinterPark = 0,
                             Oviedo = 1)
 
-predict(model, newdata = potential1, interval = 'confidence')
-predict(model, newdata = potential2, interval = 'confidence')
-predict(model, newdata = potential3, interval = 'confidence')
-predict(model, newdata = potential4, interval = 'confidence')
-predict(model, newdata = potential5, interval = 'confidence')
+predict(model3, newdata = potential1, interval = 'prediction')
+predict(model3, newdata = potential2, interval = 'prediction')
+predict(model3, newdata = potential3, interval = 'prediction')
+predict(model3, newdata = potential4, interval = 'prediction')
+predict(model3, newdata = potential5, interval = 'prediction')
 
 ```
 Need to define the correct model above
